@@ -1,54 +1,110 @@
-# 🌿 Seattle — Prédiction des émissions carbone des bâtiments
+# ⚡ Seattle Building Energy — Prédiction de consommation & émissions GES
 
-> Modèles de régression supervisée pour prédire la consommation énergétique et les émissions CO₂ des bâtiments non résidentiels de Seattle.
-
----
-
-## 🎯 Contexte
-
-Dans le cadre de l'objectif **neutralité carbone 2050** de la ville de Seattle, ce projet vise à anticiper les émissions des bâtiments tertiaires sans avoir recours à des relevés coûteux sur site. Un bon modèle prédictif permet de cibler en priorité les bâtiments les plus énergivores pour les actions de rénovation.
+Modélisation de la consommation énergétique et des émissions de gaz à effet de serre
+de **3 376 bâtiments commerciaux et résidentiels** de Seattle,
+à partir des données open data du programme [Seattle Building Energy Benchmarking](https://data.seattle.gov/).
 
 ---
 
-## ⚙️ Ce que fait le projet
+## Contexte & enjeux
 
-- **Analyse exploratoire** — distribution des consommations, corrélations, détection d'outliers
-- **Feature engineering** — sélection et transformation des variables pertinentes (surface, année de construction, type de bâtiment...)
-- **Modélisation supervisée** — comparaison de plusieurs modèles de régression
-- **Évaluation** — comparaison des performances via RMSE, MAE, R²
+Les bâtiments représentent une part majeure de la consommation énergétique urbaine.
+Ce projet modélise deux grandeurs physiques clés :
+
+- **`SiteEnergyUse (kBtu)`** — énergie totale consommée sur site (électricité + gaz naturel + vapeur)
+- **`TotalGHGEmissions (tCO₂e)`** — émissions de gaz à effet de serre associées
+
+L'objectif est de prédire ces deux cibles à partir des caractéristiques structurelles,
+géographiques et d'usage des bâtiments — sans compteur temps réel.
 
 ---
 
-## 🔍 Modèles comparés
+## Données
+
+| Caractéristique | Valeur |
+|---|---|
+| Source | Seattle Open Data Portal (Kaggle) |
+| Années | 2015 – 2016 |
+| Bâtiments | 3 376 |
+| Features initiales | 46 |
+| Cibles | `SiteEnergyUse(kBtu)` · `TotalGHGEmissions` |
+
+**Types de bâtiments couverts** : hôtels, bureaux, commerces, résidences, hôpitaux, entrepôts, campus universitaires…
+
+---
+
+## Feature engineering
+
+Les variables brutes ont été enrichies avec des features physiques et structurelles :
+
+| Feature construite | Interprétation |
+|---|---|
+| `BuildingAge` | Ancienneté du bâtiment (proxy d'isolation thermique) |
+| `haversine_distance` | Distance au centre-ville de Seattle (géospatial) |
+| `RateParking` | Part de la surface dédiée au parking |
+| `RatePerFloors` | Surface moyenne par étage |
+| `RateLargestPropertyUseType` | Concentration d'usage principal |
+| `SiteEnergyUse_Log` · `TotalGHGEmissions_Log` | Transformation log pour normaliser les distributions |
+
+Les trois flux énergétiques — **électricité**, **gaz naturel** et **vapeur** — sont traités
+comme un système multi-sources dont l'interaction détermine la consommation globale.
+
+---
+
+## Modélisation
+
+Deux notebooks de prédiction, un par cible :
+
+### Modèles testés
 
 | Modèle | Type |
-|--------|------|
-| Régression linéaire | Baseline |
-| Random Forest | Ensemble |
-| Gradient Boosting (XGBoost) | Ensemble boosté |
-| Ridge / Lasso | Régularisation |
+|---|---|
+| `DummyRegressor` | Baseline |
+| `Ridge` / `Lasso` | Régression linéaire régularisée |
+| `SVR` / `LinearSVR` | Support Vector Regression |
+| `RandomForestRegressor` | Ensemble — bagging |
+| `LightGBM` | Ensemble — gradient boosting |
+
+### Métriques d'évaluation
+
+`MAE` · `RMSE` · `MAPE` · `R²` — évaluées en cross-validation 5 folds.
 
 ---
 
-## 🛠️ Stack
-
-`Python` `Scikit-learn` `XGBoost` `Pandas` `Matplotlib` `Seaborn`
-
----
-
-## 📁 Structure du projet
+## Structure du projet
 
 ```
+seattle-building-energy/
+│
 ├── notebooks/
-│   ├── 01_exploration.ipynb       # Analyse exploratoire
-│   └── 02_modelisation.ipynb      # Modèles et évaluation
+│   ├── 1_exploration.ipynb          # EDA, nettoyage, feature engineering
+│   ├── 2_prediction_energy.ipynb    # Modélisation SiteEnergyUse
+│   └── 3_prediction_ghg.ipynb      # Modélisation TotalGHGEmissions
+│
+├── data/
+│   └── building_energy_propre.csv   # Dataset nettoyé
+│
 └── README.md
 ```
 
 ---
 
-## 📂 Données
+## Stack technique
 
-Dataset public de la ville de Seattle — [2016 Building Energy Benchmarking](https://data.seattle.gov/dataset/2016-Building-Energy-Benchmarking/2bpz-gwpy)
+`Python 3.9` · `pandas` · `scikit-learn` · `LightGBM` · `Plotly` · `Seaborn` · `haversine`
 
-Relevés de consommation énergétique et d'émissions GES pour les bâtiments non résidentiels de plus de 20 000 sq ft.
+---
+
+## Résultats clés
+
+> Les modèles ensemblistes (Random Forest, LightGBM) surpassent significativement
+> la baseline sur les deux cibles, avec des R² supérieurs à 0.85 sur le jeu de test.
+> Le `BuildingAge` et la surface par étage (`RatePerFloors`) ressortent comme
+> les features les plus prédictives de la consommation énergétique.
+
+---
+
+## Auteure
+
+**Saoussan EL HAOUZI** — Data Scientist
+[GitHub](https://github.com/Suzann-el)
